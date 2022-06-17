@@ -49,3 +49,39 @@ test('Lambda Has Environment Variables', () => {
     }
   );
 });
+
+test('DynamoDB Table created with encryption', () => {
+  const stack = new cdk.Stack();
+
+  // WHEN
+  new HitCounter(stack, "HitCounter", {
+    downstream: new lambda.Function(stack, "TestFunction", {
+      handler: "hello.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      runtime: lambda.Runtime.NODEJS_16_X,
+    }),
+  });
+
+  // THEN
+  const template = Template.fromStack(stack);
+  template.hasResourceProperties("AWS::DynamoDB::Table", {
+    SSESpecification: {
+      SSEEnabled: true,
+    }
+  });
+});
+
+test('read capacity can be configured', () => {
+  const stack = new cdk.Stack();
+
+  expect(() => {
+    new HitCounter(stack, "HitCounter", {
+      downstream: new lambda.Function(stack, "TestFunction", {
+        handler: "hello.handler",
+        code: lambda.Code.fromAsset("lambda"),
+        runtime: lambda.Runtime.NODEJS_16_X,
+      }),
+      readCapacity: 3,
+  })
+}).toThrowError(/readCapacity must be between 5 and 20/);
+});
